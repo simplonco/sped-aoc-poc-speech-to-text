@@ -22,7 +22,7 @@ worker.addEventListener("message", (e) => {
   switch (msg.type) {
     case "progress":
       if (!modelReady) {
-        statusEl.textContent = `Chargement du modèle… ${msg.file} (${Math.round(msg.progress)} %)`;
+        statusEl.textContent = `Chargement du modèle…\n${msg.file} (${Math.round(msg.progress)} %)`;
       }
       break;
     case "ready":

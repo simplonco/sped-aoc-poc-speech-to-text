@@ -49,6 +49,7 @@ main {
 #status {
   min-height: 1.5em;
   color: #666;
+  white-space: pre-line;
 }
 
 #transcript {
