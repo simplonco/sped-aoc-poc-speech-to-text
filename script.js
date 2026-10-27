@@ -10,19 +10,21 @@ const isMobile =
   /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-// Même quantification partout : un encodeur compressé (q8) donne un texte illisible,
-// et q8 est mal géré par WebGPU (q4 l'est par les deux).
-// Sur iPhone, whisper-base en fp32 fait recharger la page en boucle (mémoire) :
-// modèle le plus petit et CPU uniquement.
-// Pour tester d'autres réglages sans redéployer : ?model=base&encoder=fp16&decoder=q4&device=wasm
+// Ordinateur : même quantification sur GPU et CPU (q8 est mal géré par WebGPU, q4 l'est par les deux).
+// Smartphone (testé sur iPhone 11), CPU uniquement : un encodeur fp32 ou un décodeur q4 font
+// recharger la page en boucle (mémoire), un encodeur q8 donne un texte illisible.
+// Pour tester d'autres réglages sans redéployer : ?model=base&encoder=fp16&decoder=q8&device=wasm
 const params = new URLSearchParams(location.search);
+const DEFAULTS = isMobile
+  ? { model: "base", encoder: "fp16", decoder: "q8", device: "wasm" }
+  : { model: "small", encoder: "fp32", decoder: "q4", device: "auto" };
 const CONFIG = {
-  model: `onnx-community/whisper-${params.get("model") ?? (isMobile ? "tiny" : "small")}`,
+  model: `onnx-community/whisper-${params.get("model") ?? DEFAULTS.model}`,
   dtype: {
-    encoder_model: params.get("encoder") ?? "fp32",
-    decoder_model_merged: params.get("decoder") ?? "q4",
+    encoder_model: params.get("encoder") ?? DEFAULTS.encoder,
+    decoder_model_merged: params.get("decoder") ?? DEFAULTS.decoder,
   },
-  device: params.get("device") ?? (isMobile ? "wasm" : "auto"),
+  device: params.get("device") ?? DEFAULTS.device,
 };
 
 const worker = new Worker("worker.js", { type: "module" });
