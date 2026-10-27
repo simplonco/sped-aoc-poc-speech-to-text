@@ -1,12 +1,7 @@
 // Le modèle tourne dans un Web Worker pour ne pas figer la page pendant la transcription.
 import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 
-// whisper-tiny : plus rapide, moins précis · whisper-small : plus précis, plus lourd
-const MODEL = "onnx-community/whisper-small";
-
-// Même quantification sur GPU et CPU pour que la qualité ne dépende pas du matériel
-// (q8 n'est pas géré correctement par WebGPU, q4 l'est par les deux)
-const DTYPE = { encoder_model: "fp32", decoder_model_merged: "q4" };
+// Le modèle et la quantification sont choisis par la page (script.js) selon l'appareil.
 
 let transcriber = null;
 let device = null;
@@ -19,7 +14,7 @@ async function hasWebGPU() {
   }
 }
 
-async function load() {
+async function load({ model, dtype }) {
   const progress_callback = (p) => {
     if (p.status === "progress") {
       self.postMessage({ type: "progress", file: p.file, progress: p.progress });
@@ -29,9 +24,9 @@ async function load() {
   // WebGPU si dispo (beaucoup plus rapide), sinon WASM sur le CPU
   if (await hasWebGPU()) {
     try {
-      transcriber = await pipeline("automatic-speech-recognition", MODEL, {
+      transcriber = await pipeline("automatic-speech-recognition", model, {
         device: "webgpu",
-        dtype: DTYPE,
+        dtype,
         progress_callback,
       });
       return "webgpu";
@@ -40,22 +35,26 @@ async function load() {
     }
   }
 
-  transcriber = await pipeline("automatic-speech-recognition", MODEL, {
+  transcriber = await pipeline("automatic-speech-recognition", model, {
     device: "wasm",
-    dtype: DTYPE,
+    dtype,
     progress_callback,
   });
   return "wasm";
 }
 
-const ready = load()
-  .then((d) => {
-    device = d;
-    self.postMessage({ type: "ready", device });
-  })
-  .catch((err) => self.postMessage({ type: "error", message: err.message }));
+let ready = null;
 
 self.addEventListener("message", async (e) => {
+  if (e.data.type === "load") {
+    ready = load(e.data.config)
+      .then((d) => {
+        device = d;
+        self.postMessage({ type: "ready", device });
+      })
+      .catch((err) => self.postMessage({ type: "error", message: err.message }));
+    return;
+  }
   if (e.data.type !== "transcribe") return;
   await ready;
   try {

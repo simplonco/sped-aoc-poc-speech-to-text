@@ -1,10 +1,25 @@
 const button = document.querySelector("#record-btn");
 const statusEl = document.querySelector("#status");
 const transcriptEl = document.querySelector("#transcript");
+const settingsEl = document.querySelector("#settings");
 
 const SAMPLE_RATE = 16000; // Whisper attend de l'audio mono à 16 kHz
 
+// iPadOS se présente comme un Mac : on le repère à son écran tactile
+const isMobile =
+  /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+// Sur smartphone, whisper-small dépasse la mémoire allouée à un onglet (iOS recharge la page en boucle).
+// Même quantification sur GPU et CPU pour que la qualité ne dépende pas du matériel
+// (q8 n'est pas géré correctement par WebGPU, q4 l'est par les deux).
+const CONFIG = {
+  model: isMobile ? "onnx-community/whisper-base" : "onnx-community/whisper-small",
+  dtype: { encoder_model: "fp32", decoder_model_merged: "q4" },
+};
+
 const worker = new Worker("worker.js", { type: "module" });
+worker.postMessage({ type: "load", config: CONFIG });
 
 let modelReady = false;
 let mediaRecorder = null;
@@ -13,6 +28,17 @@ let audioSeconds = 0;
 
 const deviceLabel = (device) => (device === "webgpu" ? "GPU" : "CPU");
 const formatSeconds = (s) => `${s.toFixed(1).replace(".", ",")} s`;
+
+function showSettings(device) {
+  settingsEl.textContent = [
+    `Appareil : ${isMobile ? "mobile" : "ordinateur"}`,
+    `Modèle : ${CONFIG.model.split("/").pop()}`,
+    `Encodeur : ${CONFIG.dtype.encoder_model}`,
+    `Décodeur : ${CONFIG.dtype.decoder_model_merged}`,
+    `Calcul : ${device ? deviceLabel(device) : "…"}`,
+  ].join(" · ");
+}
+showSettings();
 
 button.disabled = true;
 statusEl.textContent = "Chargement du modèle…";
@@ -28,6 +54,7 @@ worker.addEventListener("message", (e) => {
     case "ready":
       modelReady = true;
       button.disabled = false;
+      showSettings(msg.device);
       statusEl.textContent = `Modèle prêt (${deviceLabel(msg.device)})`;
       break;
     case "result":
