@@ -10,20 +10,14 @@ const isMobile =
   /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-// Sur smartphone, un encodeur fp32 dépasse la mémoire allouée à un onglet (iOS recharge la page
-// en boucle) : modèle plus petit, entièrement compressé en q8, sur le CPU (q8 est mal géré par WebGPU).
-// Sur ordinateur, même quantification sur GPU et CPU pour que la qualité ne dépende pas du matériel.
-const CONFIG = isMobile
-  ? {
-      model: "onnx-community/whisper-base",
-      dtype: { encoder_model: "q8", decoder_model_merged: "q8" },
-      device: "wasm",
-    }
-  : {
-      model: "onnx-community/whisper-small",
-      dtype: { encoder_model: "fp32", decoder_model_merged: "q4" },
-      device: "auto",
-    };
+// Même quantification partout : un encodeur compressé (q8) donne un texte illisible,
+// et q8 est mal géré par WebGPU (q4 l'est par les deux).
+// Sur smartphone : modèle plus petit et CPU uniquement (la page se rechargeait en boucle sur iPhone).
+const CONFIG = {
+  model: isMobile ? "onnx-community/whisper-base" : "onnx-community/whisper-small",
+  dtype: { encoder_model: "fp32", decoder_model_merged: "q4" },
+  device: isMobile ? "wasm" : "auto",
+};
 
 const worker = new Worker("worker.js", { type: "module" });
 worker.postMessage({ type: "load", config: CONFIG });
