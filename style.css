@@ -16,34 +16,10 @@ main {
   text-align: center;
 }
 
-.back {
-  display: block;
-  text-align: left;
-  color: #2563eb;
-  text-decoration: none;
-}
-
 .subtitle {
   margin-top: -0.5rem;
   color: #666;
   font-size: 0.9rem;
-}
-
-.versions {
-  list-style: none;
-  padding: 0;
-}
-
-.versions li {
-  margin: 1rem 0;
-  padding: 1rem;
-  background: #fff;
-  border-radius: 8px;
-}
-
-.versions a {
-  font-weight: bold;
-  color: #2563eb;
 }
 
 #record-btn {
@@ -83,8 +59,4 @@ main {
   border-radius: 8px;
   text-align: left;
   white-space: pre-wrap;
-}
-
-#transcript .interim {
-  color: #999;
 }

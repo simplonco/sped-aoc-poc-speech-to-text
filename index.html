@@ -3,22 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dictaphone – POC</title>
-  <link rel="stylesheet" href="shared/style.css">
+  <title>Dictaphone – Whisper</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main>
-    <h1>Dictaphone – POC</h1>
-    <ul class="versions">
-      <li>
-        <a href="v1-web-speech/">v1 · Web Speech API</a>
-        <p>Reconnaissance native du navigateur. Rapide, mais l'audio part chez Google. Chrome / Edge uniquement.</p>
-      </li>
-      <li>
-        <a href="v2-whisper/">v2 · Whisper local</a>
-        <p>Modèle Whisper exécuté dans le navigateur (Transformers.js). Rien ne quitte la machine. Chrome, Brave, Firefox.</p>
-      </li>
-    </ul>
+    <h1>Dictaphone</h1>
+    <p class="subtitle">Whisper dans le navigateur (100 % local)</p>
+
+    <button id="record-btn" type="button">Enregistrer</button>
+    <p id="status" aria-live="polite"></p>
+
+    <section id="transcript" aria-live="polite"></section>
   </main>
+
+  <script type="module" src="script.js"></script>
 </body>
 </html>
