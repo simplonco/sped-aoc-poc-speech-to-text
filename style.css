@@ -52,6 +52,25 @@ main {
   white-space: pre-line;
 }
 
+#sample {
+  margin: 1rem 0 0;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 8px;
+  text-align: left;
+}
+
+#sample figcaption {
+  margin-bottom: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+#sample blockquote {
+  margin: 0;
+  font-style: italic;
+}
+
 #transcript {
   margin-top: 1rem;
   padding: 1rem;
