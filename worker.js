@@ -2,7 +2,7 @@
 import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 
 // whisper-tiny : plus rapide, moins précis · whisper-small : plus précis, plus lourd
-const MODEL = "onnx-community/whisper-base";
+const MODEL = "onnx-community/whisper-small";
 
 // Même quantification sur GPU et CPU pour que la qualité ne dépende pas du matériel
 // (q8 n'est pas géré correctement par WebGPU, q4 l'est par les deux)
