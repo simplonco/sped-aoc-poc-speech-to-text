@@ -12,11 +12,17 @@ const isMobile =
 
 // Même quantification partout : un encodeur compressé (q8) donne un texte illisible,
 // et q8 est mal géré par WebGPU (q4 l'est par les deux).
-// Sur smartphone : modèle plus petit et CPU uniquement (la page se rechargeait en boucle sur iPhone).
+// Sur iPhone, whisper-base en fp32 fait recharger la page en boucle (mémoire) :
+// modèle le plus petit et CPU uniquement.
+// Pour tester d'autres réglages sans redéployer : ?model=base&encoder=fp16&decoder=q4&device=wasm
+const params = new URLSearchParams(location.search);
 const CONFIG = {
-  model: isMobile ? "onnx-community/whisper-base" : "onnx-community/whisper-small",
-  dtype: { encoder_model: "fp32", decoder_model_merged: "q4" },
-  device: isMobile ? "wasm" : "auto",
+  model: `onnx-community/whisper-${params.get("model") ?? (isMobile ? "tiny" : "small")}`,
+  dtype: {
+    encoder_model: params.get("encoder") ?? "fp32",
+    decoder_model_merged: params.get("decoder") ?? "q4",
+  },
+  device: params.get("device") ?? (isMobile ? "wasm" : "auto"),
 };
 
 const worker = new Worker("worker.js", { type: "module" });
