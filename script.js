@@ -9,6 +9,10 @@ const worker = new Worker("worker.js", { type: "module" });
 let modelReady = false;
 let mediaRecorder = null;
 let chunks = [];
+let audioSeconds = 0;
+
+const deviceLabel = (device) => (device === "webgpu" ? "GPU" : "CPU");
+const formatSeconds = (s) => `${s.toFixed(1).replace(".", ",")} s`;
 
 button.disabled = true;
 statusEl.textContent = "Chargement du modèle…";
@@ -24,11 +28,13 @@ worker.addEventListener("message", (e) => {
     case "ready":
       modelReady = true;
       button.disabled = false;
-      statusEl.textContent = `Modèle prêt (${msg.device === "webgpu" ? "GPU" : "CPU"})`;
+      statusEl.textContent = `Modèle prêt (${deviceLabel(msg.device)})`;
       break;
     case "result":
       transcriptEl.textContent = msg.text || "";
-      statusEl.textContent = msg.text ? "" : "Rien n'a été entendu.";
+      statusEl.textContent = msg.text
+        ? `${formatSeconds(audioSeconds)} d'audio transcrites en ${formatSeconds(msg.duration / 1000)} (${deviceLabel(msg.device)})`
+        : "Rien n'a été entendu.";
       button.disabled = false;
       break;
     case "error":
@@ -78,6 +84,7 @@ async function startRecording() {
 
     const blob = new Blob(chunks, { type: mediaRecorder.mimeType });
     const audio = await blobToFloat32(blob);
+    audioSeconds = audio.length / SAMPLE_RATE;
     worker.postMessage({ type: "transcribe", audio }, [audio.buffer]);
   });
 

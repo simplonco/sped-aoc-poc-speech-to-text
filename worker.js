@@ -4,7 +4,12 @@ import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers
 // whisper-tiny : plus rapide, moins précis · whisper-small : plus précis, plus lourd
 const MODEL = "onnx-community/whisper-base";
 
+// Même quantification sur GPU et CPU pour que la qualité ne dépende pas du matériel
+// (q8 n'est pas géré correctement par WebGPU, q4 l'est par les deux)
+const DTYPE = { encoder_model: "fp32", decoder_model_merged: "q4" };
+
 let transcriber = null;
+let device = null;
 
 async function hasWebGPU() {
   try {
@@ -26,7 +31,7 @@ async function load() {
     try {
       transcriber = await pipeline("automatic-speech-recognition", MODEL, {
         device: "webgpu",
-        dtype: { encoder_model: "fp32", decoder_model_merged: "q4" },
+        dtype: DTYPE,
         progress_callback,
       });
       return "webgpu";
@@ -37,27 +42,36 @@ async function load() {
 
   transcriber = await pipeline("automatic-speech-recognition", MODEL, {
     device: "wasm",
-    dtype: "q8",
+    dtype: DTYPE,
     progress_callback,
   });
   return "wasm";
 }
 
 const ready = load()
-  .then((device) => self.postMessage({ type: "ready", device }))
+  .then((d) => {
+    device = d;
+    self.postMessage({ type: "ready", device });
+  })
   .catch((err) => self.postMessage({ type: "error", message: err.message }));
 
 self.addEventListener("message", async (e) => {
   if (e.data.type !== "transcribe") return;
   await ready;
   try {
+    const start = performance.now();
     const output = await transcriber(e.data.audio, {
       language: "french",
       task: "transcribe",
       chunk_length_s: 30, // permet des enregistrements de plus de 30 s
       stride_length_s: 5,
     });
-    self.postMessage({ type: "result", text: output.text.trim() });
+    self.postMessage({
+      type: "result",
+      text: output.text.trim(),
+      duration: performance.now() - start,
+      device,
+    });
   } catch (err) {
     self.postMessage({ type: "error", message: err.message });
   }
