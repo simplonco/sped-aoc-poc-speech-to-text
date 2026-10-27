@@ -14,7 +14,7 @@ async function hasWebGPU() {
   }
 }
 
-async function load({ model, dtype }) {
+async function load({ model, dtype, device: wanted }) {
   const progress_callback = (p) => {
     if (p.status === "progress") {
       self.postMessage({ type: "progress", file: p.file, progress: p.progress });
@@ -22,7 +22,7 @@ async function load({ model, dtype }) {
   };
 
   // WebGPU si dispo (beaucoup plus rapide), sinon WASM sur le CPU
-  if (await hasWebGPU()) {
+  if (wanted === "auto" && (await hasWebGPU())) {
     try {
       transcriber = await pipeline("automatic-speech-recognition", model, {
         device: "webgpu",

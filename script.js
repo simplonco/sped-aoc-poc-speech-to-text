@@ -10,13 +10,20 @@ const isMobile =
   /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-// Sur smartphone, whisper-small dépasse la mémoire allouée à un onglet (iOS recharge la page en boucle).
-// Même quantification sur GPU et CPU pour que la qualité ne dépende pas du matériel
-// (q8 n'est pas géré correctement par WebGPU, q4 l'est par les deux).
-const CONFIG = {
-  model: isMobile ? "onnx-community/whisper-base" : "onnx-community/whisper-small",
-  dtype: { encoder_model: "fp32", decoder_model_merged: "q4" },
-};
+// Sur smartphone, un encodeur fp32 dépasse la mémoire allouée à un onglet (iOS recharge la page
+// en boucle) : modèle plus petit, entièrement compressé en q8, sur le CPU (q8 est mal géré par WebGPU).
+// Sur ordinateur, même quantification sur GPU et CPU pour que la qualité ne dépende pas du matériel.
+const CONFIG = isMobile
+  ? {
+      model: "onnx-community/whisper-base",
+      dtype: { encoder_model: "q8", decoder_model_merged: "q8" },
+      device: "wasm",
+    }
+  : {
+      model: "onnx-community/whisper-small",
+      dtype: { encoder_model: "fp32", decoder_model_merged: "q4" },
+      device: "auto",
+    };
 
 const worker = new Worker("worker.js", { type: "module" });
 worker.postMessage({ type: "load", config: CONFIG });
